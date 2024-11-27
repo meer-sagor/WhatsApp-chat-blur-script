@@ -31,14 +31,14 @@
 
   // Apply blur effect to chats and conversation
   function applyBlurEffect(element) {
-    element.style.filter = 'blur(5px)';
+    element.style.filter = 'blur(8px)';
     element.style.transition = 'filter 0.3s ease-in-out';
     // Remove blur on hover for conversation panel
     element.addEventListener('mouseenter', () => {
       element.style.filter = 'none';
     });
     element.addEventListener('mouseleave', () => {
-      element.style.filter = 'blur(5px)';
+      element.style.filter = 'blur(8px)';
     });
   }
 
