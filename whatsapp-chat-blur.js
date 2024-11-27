@@ -8,8 +8,8 @@
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=whatsapp.com
 // @grant        none
 // @license      MIT
-// @updateURL    https://github.com/meer-sagor/repository/raw/main/whatsapp-chat-blur.js
-// @downloadURL  https://github.com/meer-sagor/repository/raw/main/whatsapp-chat-blur.js
+// @updateURL    https://raw.githubusercontent.com/meer-sagor/WhatsApp-chat-blur-script/refs/heads/master/whatsapp-chat-blur.js
+// @downloadURL  https://raw.githubusercontent.com/meer-sagor/WhatsApp-chat-blur-script/refs/heads/master/whatsapp-chat-blur.js
 // ==/UserScript==
 (function () {
     'use strict';
@@ -78,6 +78,12 @@
           chatItem.style.filter = 'none'; // Unblur active chat
         }
         applyBlurEffect(chatItem)
+
+        chatItem.addEventListener('click', () => {
+          setTimeout(() => {
+              inactiveChats(); // Re-apply blur effects when switching chats
+          }, 1000); // Delay to ensure the chat change is registered
+      });
       });
   
       // Blur messages in the conversation panel
@@ -103,16 +109,6 @@
         observer.observe(container, { childList: true, subtree: true });
         inactiveChats(); // Initial call to apply blur
       });
-  
-         // Observe when chat is selected (active state changes)
-       const chatList = document.querySelector('[aria-label="Chat list"]');
-        if (chatList) {
-            chatList.addEventListener('click', () => {
-                setTimeout(() => {
-                    inactiveChats(); // Re-apply blur effects when switching chats
-                }, 1000); // Delay to ensure the chat change is registered
-            });
-        }
     }
   
     // Wait for DOM to be fully loaded
