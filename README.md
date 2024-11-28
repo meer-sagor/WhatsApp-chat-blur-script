@@ -29,6 +29,8 @@ This UserScript blurs inactive chats and messages in WhatsApp Web, improving pri
 
 ---
 
+<img src='./assets/Screenshot.png' alt='there'>
+
 
 ## License
 This script is licensed under the [MIT License](https://github.com/meer-sagor/whatsApp-chat-blur-script?tab=MIT-1-ov-file) You can use, modify, and distribute it freely, provided attribution is given.
