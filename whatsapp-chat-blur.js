@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Blur Inactive WhatsApp Chats
 // @namespace    http://tampermonkey.net/
-// @version      1.0.0
+// @version      1.0.1
 // @description  Blurs inactive WhatsApp chats and reveals them on hover
 // @author       Meer Sagor
 // @match        https://web.whatsapp.com/
@@ -116,8 +116,18 @@
     });
   }
 
+    /**
+   * Reapply blur effect on tab visibility change
+   */
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') {
+        inactiveChats();
+      }
+    }
+
   // Wait for DOM to be fully loaded
   window.addEventListener('load', () => {
     setTimeout(observeChatChanges, 3000);
+    document.addEventListener('visibilitychange', handleVisibilityChange); // Add visibility change listener
   });
 })();
