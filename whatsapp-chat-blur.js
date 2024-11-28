@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Blur Inactive WhatsApp Chats
 // @namespace    http://tampermonkey.net/
-// @version      1.0.1
+// @version      1.2.0
 // @description  Blurs inactive WhatsApp chats and reveals them on hover
 // @author       Meer Sagor
 // @match        https://web.whatsapp.com/
@@ -12,9 +12,11 @@
 (function () {
   'use strict';
 
-  // Utility function to wait for an element to exist
+  /**
+   * Utility function to wait for an element to exist
+   */
   function waitForElement(selector, callback, timeout = 10000) {
-    const interval = 100; // Check every 100ms
+    const interval = 100;
     const startTime = Date.now();
 
     const intervalId = setInterval(() => {
@@ -29,59 +31,56 @@
     }, interval);
   }
 
-  // Apply blur effect to chats and conversation
+  /**
+   * Apply blur effect to an element
+   */
   function applyBlurEffect(element) {
-    element.style.filter = 'blur(8px)';
-    element.style.transition = 'filter 0.3s ease-in-out';
-    // Remove blur on hover for conversation panel
-    element.addEventListener('mouseenter', () => {
-      element.style.filter = 'none';
-    });
-    element.addEventListener('mouseleave', () => {
+    if (!element.style.filter.includes('blur')) {
       element.style.filter = 'blur(8px)';
-    });
+      element.style.transition = 'filter 0.3s ease-in-out';
+    }
+    element.addEventListener('mouseenter', () => (element.style.filter = 'none'));
+    element.addEventListener('mouseleave', () => (element.style.filter = 'blur(8px)'));
   }
 
-  function applyBlurEffectInMessages(messageContainerEl) {
-    // Blur messages in the conversation panel
-    const inMessages = messageContainerEl.querySelectorAll('.message-in');
-    inMessages.forEach((message) => {
-      applyBlurEffect(message);
-    });
-  }
-
-  function applyBlurEffectOutMessages(messageContainerEl) {
-    // Blur messages in the conversation panel
-    const outMessages = messageContainerEl.querySelectorAll('.message-out');
-    outMessages.forEach((message) => {
-      applyBlurEffect(message);
-    });
-  }
-
-  function inactiveChats() {
+  /**
+   * Blur chat items
+   */
+  function blurChatList() {
     const chatList = document.querySelector('[aria-label="Chat list"]');
-    const messageContainer = document.querySelector('#main');
-
-    if (!chatList) return; // Exit if chat list is not found
+    if (!chatList) return;
 
     const chatItems = chatList.querySelectorAll('[role="listitem"]');
-
-    chatItems.forEach((chatItem) => {
-      applyBlurEffect(chatItem);
-      chatItem.addEventListener('click', () => {
-        setTimeout(() => {
-          inactiveChats(); // Re-apply blur effects when switching chats
-        }, 1000); // Delay to ensure the chat change is registered
-      });
-    });
-
-    // Blur messages in the conversation panel
-    if (messageContainer) {
-      applyBlurEffectInMessages(messageContainer);
-      applyBlurEffectOutMessages(messageContainer);
-    }
+    chatItems.forEach((chatItem) => applyBlurEffect(chatItem));
   }
 
+  /**
+   * Blur messages inside the active conversation
+   */
+  function blurMessages() {
+    const messageContainer = document.querySelector('#main');
+    if (!messageContainer) return;
+
+    const messages = messageContainer.querySelectorAll('.message-in, .message-out');
+    messages.forEach((message) => applyBlurEffect(message));
+  }
+
+  /**
+   * Observe changes in the chat list
+   */
+  function observeChatList() {
+    waitForElement('[aria-label="Chat list"]', (chatContainer) => {
+      const chatObserver = new MutationObserver(() => {
+        blurChatList(); // Apply blur when chat list changes
+      });
+      chatObserver.observe(chatContainer, { childList: true, subtree: true });
+      blurChatList(); // Initial blur
+    });
+  }
+
+  /**
+   * Observe new messages in the conversation
+   */
   function observeNewMessages(container) {
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
@@ -103,31 +102,36 @@
     observer.observe(container, { childList: true, subtree: true });
   }
 
-  function observeChatChanges() {
-    waitForElement('[aria-label="Chat list"]', (chatContainer) => {
-      const observer = new MutationObserver(applyBlurEffect);
-      observer.observe(chatContainer, { childList: true, subtree: true });
-      inactiveChats(); // Initial call to apply blur
-    });
-
-    waitForElement('#main', (container) => {
-      observeNewMessages(container); // Observe new messages
-      inactiveChats(); // Initial call to apply blur
+  /**
+   * Observe changes in the message container
+   */
+  function observeMessageContainer() {
+    waitForElement('#main', (messageContainer) => {
+      const messageObserver = new MutationObserver(() => {
+        blurMessages(); // Apply blur when messages change
+      });
+      messageObserver.observe(messageContainer, { childList: true, subtree: true });
+      observeNewMessages(messageContainer); // Additional observation for dynamic messages
+      blurMessages(); // Initial blur
     });
   }
 
-    /**
+  /**
    * Reapply blur effect on tab visibility change
    */
-    function handleVisibilityChange() {
-      if (document.visibilityState === 'visible') {
-        inactiveChats();
-      }
+  function handleVisibilityChange() {
+    if (document.visibilityState === 'visible') {
+      blurChatList();
+      blurMessages();
     }
+  }
 
-  // Wait for DOM to be fully loaded
+  // Initialize the script
   window.addEventListener('load', () => {
-    setTimeout(observeChatChanges, 3000);
-    document.addEventListener('visibilitychange', handleVisibilityChange); // Add visibility change listener
+    setTimeout(() => {
+      observeChatList();
+      observeMessageContainer();
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+    }, 3000);
   });
 })();
