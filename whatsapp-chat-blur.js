@@ -11,26 +11,6 @@
 // ==/UserScript==
 (function () {
   'use strict';
-
-  /**
-   * Utility function to wait for an element to exist
-   */
-  function waitForElement(selector, callback, timeout = 10000) {
-    const interval = 100;
-    const startTime = Date.now();
-
-    const intervalId = setInterval(() => {
-      const element = document.querySelector(selector);
-      if (element) {
-        clearInterval(intervalId);
-        callback(element);
-      } else if (Date.now() - startTime > timeout) {
-        clearInterval(intervalId);
-        console.warn(`Element "${selector}" not found within timeout.`);
-      }
-    }, interval);
-  }
-
   /**
    * Apply blur effect to an element
    */
@@ -39,8 +19,14 @@
       element.style.filter = 'blur(8px)';
       element.style.transition = 'filter 0.3s ease-in-out';
     }
-    element.addEventListener('mouseenter', () => (element.style.filter = 'none'));
-    element.addEventListener('mouseleave', () => (element.style.filter = 'blur(8px)'));
+    element.addEventListener(
+      'mouseenter',
+      () => (element.style.filter = 'none')
+    );
+    element.addEventListener(
+      'mouseleave',
+      () => (element.style.filter = 'blur(8px)')
+    );
   }
 
   /**
@@ -61,27 +47,41 @@
     const messageContainer = document.querySelector('#main');
     if (!messageContainer) return;
 
-    const messages = messageContainer.querySelectorAll('.message-in, .message-out');
+    const messages = messageContainer.querySelectorAll(
+      '.message-in, .message-out'
+    );
     messages.forEach((message) => applyBlurEffect(message));
   }
 
   /**
-   * Observe changes in the chat list
+   * Utility function to handle when the [aria-label="Chat list"] element is added to the DOM
    */
-  function observeChatList() {
-    waitForElement('[aria-label="Chat list"]', (chatContainer) => {
-      const chatObserver = new MutationObserver(() => {
-        blurChatList(); // Apply blur when chat list changes
-      });
-      chatObserver.observe(chatContainer, { childList: true, subtree: true });
-      blurChatList(); // Initial blur
+  function observeChatListCreation() {
+    // Observe the document body for DOM changes
+    const observer = new MutationObserver(() => {
+      const chatList = document.querySelector('[aria-label="Chat list"]');
+      if (chatList) {
+        observer.disconnect(); // Stop observing once the element is found
+        const chatItems = chatList.querySelectorAll('[role="listitem"]');
+        chatItems.forEach((chatItem) => {
+          chatItem.addEventListener('click', () => {
+            blurMessages();
+          });
+        });
+        blurChatList();
+      }
     });
+    // Start observing the DOM
+    observer.observe(document.body, { childList: true, subtree: true });
   }
 
   /**
    * Observe new messages in the conversation
    */
-  function observeNewMessages(container) {
+  function observeNewMessages() {
+    // Target the parent node where the #main element will be added (usually the body or a specific container)
+    const targetNode = document.body;
+
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
@@ -89,30 +89,24 @@
             if (node.nodeType === 1 && node.getAttribute('role') === 'row') {
               // Apply blur to newly added messages
               const inMessages = node.querySelectorAll('.message-in');
-              inMessages.forEach(applyBlurEffect);
+              // inMessages.forEach(applyBlurEffect);
+              inMessages.forEach((message) => {
+                applyBlurEffect(message);
+              });
 
               const outMessages = node.querySelectorAll('.message-out');
-              outMessages.forEach(applyBlurEffect);
+              // outMessages.forEach(applyBlurEffect);
+              outMessages.forEach((message) => {
+                applyBlurEffect(message);
+              });
             }
           });
         }
       });
     });
-
-    observer.observe(container, { childList: true, subtree: true });
-  }
-
-  /**
-   * Observe changes in the message container
-   */
-  function observeMessageContainer() {
-    waitForElement('#main', (messageContainer) => {
-      const messageObserver = new MutationObserver(() => {
-        blurMessages(); // Apply blur when messages change
-      });
-      messageObserver.observe(messageContainer, { childList: true, subtree: true });
-      observeNewMessages(messageContainer); // Additional observation for dynamic messages
-      blurMessages(); // Initial blur
+    observer.observe(targetNode, {
+      childList: true,
+      subtree: true,
     });
   }
 
@@ -121,17 +115,18 @@
    */
   function handleVisibilityChange() {
     if (document.visibilityState === 'visible') {
-      blurChatList();
       blurMessages();
     }
   }
 
+  function observing() {
+    observeChatListCreation();
+    observeNewMessages();
+  }
+
   // Initialize the script
   window.addEventListener('load', () => {
-    setTimeout(() => {
-      observeChatList();
-      observeMessageContainer();
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-    }, 3000);
+    observing();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
   });
 })();
