@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Blur Inactive WhatsApp Chats
+// @name         Blur WhatsApp Chats
 // @namespace    http://tampermonkey.net/
 // @version      1.2.0
 // @description  Blurs inactive WhatsApp chats and reveals them on hover
